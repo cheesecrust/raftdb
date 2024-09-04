@@ -5,10 +5,6 @@ void* run_node(void* arg) {
     RaftNode* node = args->node;
     struct sockaddr_in* nodes = args->nodes;
 
-    for (int i = 0; i < 3; i++) {
-        printf("Node %d: %s:%d\n", i, inet_ntoa(nodes[i].sin_addr), ntohs(nodes[i].sin_port));
-    }
-
     while (1) {
         switch (node->state) {
             case FOLLOWER:
@@ -34,7 +30,7 @@ void follower_behavior(RaftNode* node) {
 
     while (1) {
         /* code */
-        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
+        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout && node->leader_id == -1) {
             node->state = CANDIDATE;
             printf("Node %d timed out, becoming candidate\n", node->node_id);
             break;
@@ -63,7 +59,6 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
     sprintf(buffer, "REQUEST_VOTE %d %d", term, candidate_id);
 
     for (int i = 1; i < NUM_NODES; i++) {
-        printf("Node %d is requesting vote to node %d\n", node->node_id, ntohs(nodes[i].sin_port));
         sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
     }
 
@@ -80,10 +75,8 @@ void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
     char buffer[1024];
     sprintf(buffer, "HEARTBEAT %d %d", node->current_term, node->node_id);
 
-    for (int i = 0; i < NUM_NODES; i++) {
-        if (i != node->node_id) {
-            sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
-        }
+    for (int i = 1; i < NUM_NODES; i++) {
+        sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
     }
 }
 

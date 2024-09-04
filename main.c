@@ -4,6 +4,7 @@ void init_node(RaftNode* node, int id, const char* ip, int port) {
     node->node_id = id;
     node->current_term = 0;
     node->voted_for = -1;
+    node->votes = 0;
     node->state = FOLLOWER;
     node->leader_id = -1;
     node->last_heartbeat = time(NULL);

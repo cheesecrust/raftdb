@@ -18,6 +18,7 @@ typedef struct {
     int node_id;
     int current_term;
     int voted_for;
+    int votes;
     State state;
     int leader_id;
     int socket_fd;
