@@ -18,11 +18,8 @@ void* run_socket(void* arg) {
             int term, candidate_id;
             sscanf(buffer, "REQUEST_VOTE %d %d", &term, &candidate_id);
 
-            if (term > node->current_term) {
-                node->current_term = term;
-                node->state = FOLLOWER;
-                node->voted_for = -1;
-            }
+            // TODO: 투표 요청 처리 나 보다 임기가 작은 아이의 요청
+
             if (node->voted_for == -1) {
                 node->voted_for = candidate_id;
                 sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
@@ -39,7 +36,8 @@ void* run_socket(void* arg) {
             }
         } else if (strncmp(buffer, "HEARTBEAT", 9) == 0) {
             int term, leader_id;
-            sscanf(buffer, "HEARTBEAT %d %d", &term, &leader_id);
+            sscanf(buffer, "HEARTBEAT term: %d, leader_id: %d", &term, &leader_id);
+
             node->current_term = term;
             node->leader_id = leader_id;
             node->last_heartbeat = time(NULL);

@@ -33,22 +33,23 @@ void follower_behavior(RaftNode* node) {
         if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout && node->leader_id == -1) {
             node->state = CANDIDATE;
             printf("Node %d timed out, becoming candidate\n", node->node_id);
-            break;
+            return;
         }
     }
-
 }
 
 void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     node->current_term++;
     node->voted_for = node->node_id;
-    int votes = 1; // 자신에게 투표
+    node->votes = 1; // 자신에게 투표
 
     printf("Node %d is starting an election for term %d\n", node->node_id, node->current_term);
 
     // 투표 요청 전송
-    request_vote(node, nodes, node->current_term, node->node_id);
-
+    while (node->state == CANDIDATE) {
+        request_vote(node, nodes, node->current_term, node->node_id);
+        usleep(2000000); // 1초 간격으로 투표요청 실행
+    }
 }
 
 int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candidate_id) {
@@ -88,27 +89,3 @@ void receive_heartbeat(RaftNode* node, int term, int leader_id) {
         node->last_heartbeat = time(NULL);
     }
 }
-
-// void set_nonblocking(int sockfd) {
-//     int flags = fcntl(sockfd, F_GETFL, 0);
-//     if (flags < 0) {
-//         perror("fcntl(F_GETFL) failed");
-//         exit(EXIT_FAILURE);
-//     }
-//     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-//         perror("fcntl(F_SETFL) failed");
-//         exit(EXIT_FAILURE);
-//     }
-// }
-
-// void set_blocking(int sockfd) {
-//     int flags = fcntl(sockfd, F_GETFL, 0);
-//     if (flags < 0) {
-//         perror("fcntl(F_GETFL) failed");
-//         exit(EXIT_FAILURE);
-//     }
-//     if (fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
-//         perror("fcntl(F_SETFL) failed");
-//         exit(EXIT_FAILURE);
-//     }
-// }
