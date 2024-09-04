@@ -1,8 +1,9 @@
 #include "raft.h"
 
 void* run_node(void* arg) {
-    RaftNode* node = (RaftNode*)arg;
-    RaftNode nodes[NUM_NODES];  // 클러스터에 있는 다른 노드들
+    thread_args* args = (thread_args*) arg;
+    RaftNode* node = args->node;
+    struct sockaddr_in* nodes = args->nodes;
 
     while (1) {
         switch (node->state) {
@@ -13,7 +14,7 @@ void* run_node(void* arg) {
                 candidate_behavior(node, nodes);
                 break;
             case LEADER:
-                leader_behavior(node);
+                leader_behavior(node, nodes);
                 break;
         }
         usleep(100000); // 0.1초 간격으로 실행
@@ -22,13 +23,34 @@ void* run_node(void* arg) {
 }
 
 void follower_behavior(RaftNode* node) {
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    char buffer[1024];
+
     if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
         node->state = CANDIDATE;
         printf("Node %d timed out, becoming candidate\n", node->node_id);
     }
+    set_nonblocking(node->socket_fd);
+    int n = recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
+
+    // receive data is request vote
+    if (strncmp(buffer, "REQUEST_VOTE", 12)) {
+        int term, candidate_id;
+        sscanf(buffer, "REQUEST_VOTE %d %d", &term, &candidate_id);
+
+        // TODO: check term and candidate_id
+
+        if (node->voted_for == -1) {
+            node->voted_for = candidate_id;
+            sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
+        }
+    } else if (strncmp(buffer, "HEARTBEAT", 9)) {
+        // TODO: receive heartbeat
+    }
 }
 
-void candidate_behavior(RaftNode* node, RaftNode nodes[]) {
+void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     node->current_term++;
     node->voted_for = node->node_id;
     int votes = 1; // 자신에게 투표
@@ -53,23 +75,24 @@ void candidate_behavior(RaftNode* node, RaftNode nodes[]) {
     }
 }
 
-void leader_behavior(RaftNode* node) {
-    printf("Node %d is sending heartbeats to followers\n", node->node_id);
-    send_heartbeat(node, node);  // 이 부분을 수정해서 전체 노드에게 보냅니다.
-    sleep(1); // heartbeat 간격
-}
-
-int request_vote(RaftNode* node, RaftNode nodes[], int term, int candidate_id) {
+int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candidate_id) {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
     char buffer[1024];
 
     sprintf(buffer, "REQUEST_VOTE %d %d", term, candidate_id);
-    sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&node->addr, sizeof(node->addr));
 
+    for (int i = 0; i < NUM_NODES; i++) {
+        if (i != node->node_id) {
+            sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
+        }
+    }
+
+    printf("%d\n", node->socket_fd);
+    // set_blocking(node->socket_fd);
     int n = recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
     buffer[n] = '\0';
-
+    printf("aa %s \n", buffer);
     if (strcmp(buffer, "VOTE_GRANTED") == 0) {
         return 1;
     }
@@ -77,13 +100,19 @@ int request_vote(RaftNode* node, RaftNode nodes[], int term, int candidate_id) {
     return 0;
 }
 
-void send_heartbeat(RaftNode* node, RaftNode nodes[]) {
+void leader_behavior(RaftNode* node, struct sockaddr_in* nodes) {
+    printf("Node %d is sending heartbeats to followers\n", node->node_id);
+    send_heartbeat(node, nodes);  // 이 부분을 수정해서 전체 노드에게 보냅니다.
+    sleep(1); // heartbeat 간격
+}
+
+void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
     char buffer[1024];
     sprintf(buffer, "HEARTBEAT %d %d", node->current_term, node->node_id);
 
     for (int i = 0; i < NUM_NODES; i++) {
         if (i != node->node_id) {
-            sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i].addr, sizeof(nodes[i].addr));
+            sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
         }
     }
 }
@@ -94,5 +123,29 @@ void receive_heartbeat(RaftNode* node, int term, int leader_id) {
         node->leader_id = leader_id;
         node->state = FOLLOWER;
         node->last_heartbeat = time(NULL);
+    }
+}
+
+void set_nonblocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags < 0) {
+        perror("fcntl(F_GETFL) failed");
+        exit(EXIT_FAILURE);
+    }
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        perror("fcntl(F_SETFL) failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void set_blocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags < 0) {
+        perror("fcntl(F_GETFL) failed");
+        exit(EXIT_FAILURE);
+    }
+    if (fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+        perror("fcntl(F_SETFL) failed");
+        exit(EXIT_FAILURE);
     }
 }

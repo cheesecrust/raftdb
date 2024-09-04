@@ -33,7 +33,6 @@ void init_node(RaftNode* node, int id, const char* ip, int port) {
 }
 
 int main(int argc, char* argv[]) {
-    printf("%d, %s, %s, %s",argc, argv[0], argv[1], argv[2]);
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <node_id> <ip:port> [other ip:port...]\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -43,21 +42,27 @@ int main(int argc, char* argv[]) {
     char* ip = strtok(argv[2], ":");
     int port = atoi(strtok(NULL, ":"));
 
-    RaftNode node;
-    init_node(&node, node_id, ip, port);
+    thread_args arg;
+    arg.node = (RaftNode*)malloc(sizeof(RaftNode));
+    init_node(arg.node, node_id, ip, port);
 
-    RaftNode nodes[NUM_NODES];
-    nodes[node_id] = node;
+    memset(&arg.nodes[0], 0, sizeof(struct sockaddr_in));
+    arg.nodes[0].sin_family = AF_INET;
+    arg.nodes[0].sin_port = htons(port);
+    inet_pton(AF_INET, ip, &arg.nodes[0].sin_addr);
 
     // 다른 노드들의 IP와 포트 정보 저장
     for (int i = 1; i < argc - 2; i++) {
-        ip = strtok(argv[i + 2], ":");
-        port = atoi(strtok(NULL, ":"));
-        init_node(&nodes[i], i, ip, port);
+        sscanf(argv[i + 2], "%[^:]:%d", ip, &port);
+
+        memset(&arg.nodes[i], 0, sizeof(struct sockaddr_in));
+        arg.nodes[i].sin_family = AF_INET;
+        arg.nodes[i].sin_port = htons(port);
+        inet_pton(AF_INET, ip, &arg.nodes[i].sin_addr);
     }
 
     pthread_t node_thread;
-    pthread_create(&node_thread, NULL, run_node, (void*)&node);
+    pthread_create(&node_thread, NULL, run_node, (void*)&arg);
     pthread_join(node_thread, NULL);
 
     return 0;
