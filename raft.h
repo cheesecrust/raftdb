@@ -33,6 +33,7 @@ typedef struct {
 
 void init_node(RaftNode* node, int id, const char* ip, int port);
 void* run_node(void* arg);
+void* run_socket(void* arg);
 void follower_behavior(RaftNode* node);
 void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes);
 void leader_behavior(RaftNode* node, struct sockaddr_in* nodes);

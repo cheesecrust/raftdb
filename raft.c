@@ -17,7 +17,7 @@ void* run_node(void* arg) {
                 leader_behavior(node, nodes);
                 break;
         }
-        usleep(100000); // 0.1초 간격으로 실행
+        usleep(2000000); // 2초 간격으로 실행
     }
     return NULL;
 }
@@ -26,28 +26,17 @@ void follower_behavior(RaftNode* node) {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
     char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
 
-    if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
-        node->state = CANDIDATE;
-        printf("Node %d timed out, becoming candidate\n", node->node_id);
-    }
-    set_nonblocking(node->socket_fd);
-    int n = recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
-
-    // receive data is request vote
-    if (strncmp(buffer, "REQUEST_VOTE", 12)) {
-        int term, candidate_id;
-        sscanf(buffer, "REQUEST_VOTE %d %d", &term, &candidate_id);
-
-        // TODO: check term and candidate_id
-
-        if (node->voted_for == -1) {
-            node->voted_for = candidate_id;
-            sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
+    while (1) {
+        /* code */
+        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
+            node->state = CANDIDATE;
+            printf("Node %d timed out, becoming candidate\n", node->node_id);
+            break;
         }
-    } else if (strncmp(buffer, "HEARTBEAT", 9)) {
-        // TODO: receive heartbeat
     }
+
 }
 
 void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
@@ -60,19 +49,10 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     // 투표 요청 전송
     for (int i = 0; i < NUM_NODES; i++) {
         if (i != node->node_id) {
-            if (request_vote(node, nodes, node->current_term, node->node_id)) {
-                votes++;
-            }
+            request_vote(node, nodes, node->current_term, node->node_id);
         }
     }
 
-    if (votes > NUM_NODES / 2) {
-        node->state = LEADER;
-        node->leader_id = node->node_id;
-        printf("Node %d is elected as leader for term %d\n", node->node_id, node->current_term);
-    } else {
-        node->state = FOLLOWER;
-    }
 }
 
 int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candidate_id) {
@@ -86,15 +66,6 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
         if (i != node->node_id) {
             sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
         }
-    }
-
-    printf("%d\n", node->socket_fd);
-    // set_blocking(node->socket_fd);
-    int n = recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
-    buffer[n] = '\0';
-    printf("aa %s \n", buffer);
-    if (strcmp(buffer, "VOTE_GRANTED") == 0) {
-        return 1;
     }
 
     return 0;
@@ -126,26 +97,26 @@ void receive_heartbeat(RaftNode* node, int term, int leader_id) {
     }
 }
 
-void set_nonblocking(int sockfd) {
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags < 0) {
-        perror("fcntl(F_GETFL) failed");
-        exit(EXIT_FAILURE);
-    }
-    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        perror("fcntl(F_SETFL) failed");
-        exit(EXIT_FAILURE);
-    }
-}
+// void set_nonblocking(int sockfd) {
+//     int flags = fcntl(sockfd, F_GETFL, 0);
+//     if (flags < 0) {
+//         perror("fcntl(F_GETFL) failed");
+//         exit(EXIT_FAILURE);
+//     }
+//     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+//         perror("fcntl(F_SETFL) failed");
+//         exit(EXIT_FAILURE);
+//     }
+// }
 
-void set_blocking(int sockfd) {
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags < 0) {
-        perror("fcntl(F_GETFL) failed");
-        exit(EXIT_FAILURE);
-    }
-    if (fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
-        perror("fcntl(F_SETFL) failed");
-        exit(EXIT_FAILURE);
-    }
-}
+// void set_blocking(int sockfd) {
+//     int flags = fcntl(sockfd, F_GETFL, 0);
+//     if (flags < 0) {
+//         perror("fcntl(F_GETFL) failed");
+//         exit(EXIT_FAILURE);
+//     }
+//     if (fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+//         perror("fcntl(F_SETFL) failed");
+//         exit(EXIT_FAILURE);
+//     }
+// }

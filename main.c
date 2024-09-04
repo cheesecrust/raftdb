@@ -61,9 +61,13 @@ int main(int argc, char* argv[]) {
         inet_pton(AF_INET, ip, &arg.nodes[i].sin_addr);
     }
 
-    pthread_t node_thread;
+    pthread_t node_thread, socket_thread;
+
     pthread_create(&node_thread, NULL, run_node, (void*)&arg);
+    pthread_create(&socket_thread, NULL, run_socket, (void*)&arg);
+
     pthread_join(node_thread, NULL);
+    pthread_join(socket_thread, NULL);
 
     return 0;
 }
