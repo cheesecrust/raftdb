@@ -5,6 +5,10 @@ void* run_node(void* arg) {
     RaftNode* node = args->node;
     struct sockaddr_in* nodes = args->nodes;
 
+    for (int i = 0; i < 3; i++) {
+        printf("Node %d: %s:%d\n", i, inet_ntoa(nodes[i].sin_addr), ntohs(nodes[i].sin_port));
+    }
+
     while (1) {
         switch (node->state) {
             case FOLLOWER:
@@ -47,11 +51,7 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     printf("Node %d is starting an election for term %d\n", node->node_id, node->current_term);
 
     // 투표 요청 전송
-    for (int i = 0; i < NUM_NODES; i++) {
-        if (i != node->node_id) {
-            request_vote(node, nodes, node->current_term, node->node_id);
-        }
-    }
+    request_vote(node, nodes, node->current_term, node->node_id);
 
 }
 
@@ -62,10 +62,9 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
 
     sprintf(buffer, "REQUEST_VOTE %d %d", term, candidate_id);
 
-    for (int i = 0; i < NUM_NODES; i++) {
-        if (i != node->node_id) {
-            sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
-        }
+    for (int i = 1; i < NUM_NODES; i++) {
+        printf("Node %d is requesting vote to node %d\n", node->node_id, ntohs(nodes[i].sin_port));
+        sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
     }
 
     return 0;

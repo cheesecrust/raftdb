@@ -46,13 +46,8 @@ int main(int argc, char* argv[]) {
     arg.node = (RaftNode*)malloc(sizeof(RaftNode));
     init_node(arg.node, node_id, ip, port);
 
-    memset(&arg.nodes[0], 0, sizeof(struct sockaddr_in));
-    arg.nodes[0].sin_family = AF_INET;
-    arg.nodes[0].sin_port = htons(port);
-    inet_pton(AF_INET, ip, &arg.nodes[0].sin_addr);
-
-    // 다른 노드들의 IP와 포트 정보 저장
-    for (int i = 1; i < argc - 2; i++) {
+    // 차례대로 노드들의 주소를 저장
+    for (int i = 0; i < argc - 2; i++) {
         sscanf(argv[i + 2], "%[^:]:%d", ip, &port);
 
         memset(&arg.nodes[i], 0, sizeof(struct sockaddr_in));

@@ -11,7 +11,9 @@ void* run_socket(void* arg) {
         struct sockaddr_in addr;
         socklen_t len = sizeof(addr);
 
+        // printf("Node %d is listening for messages\n", node->node_id);
         recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
+        printf("Node %d received: %s\n", node->node_id, buffer);
 
         if (strncmp(buffer, "REQUEST_VOTE", 12) == 0) {
             int term, candidate_id;
@@ -26,13 +28,7 @@ void* run_socket(void* arg) {
                 sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
             }
         } else if (strncmp(buffer, "HEARTBEAT", 9) == 0) {
-            int term, leader_id;
-            sscanf(buffer, "HEARTBEAT %d %d", &term, &leader_id);
-            if (term >= node->current_term) {
-                node->current_term = term;
-                node->leader_id = leader_id;
-                node->state = FOLLOWER;
-            }
+            // TODO: implement
         }
     }
 }
