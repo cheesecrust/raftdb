@@ -30,7 +30,7 @@ void follower_behavior(RaftNode* node) {
 
     while (1) {
         /* code */
-        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout && node->leader_id == -1) {
+        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout && node->leader_ip == NULL) {
             node->state = CANDIDATE;
             printf("Node %d timed out, becoming candidate\n", node->node_id);
             return;
@@ -74,18 +74,9 @@ void leader_behavior(RaftNode* node, struct sockaddr_in* nodes) {
 
 void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
     char buffer[1024];
-    sprintf(buffer, "HEARTBEAT %d %d", node->current_term, node->node_id);
+    sprintf(buffer, "HEARTBEAT %d IP %s PORT %d", node->current_term, node->leader_ip, node->leader_port);
 
     for (int i = 1; i < NUM_NODES; i++) {
         sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
-    }
-}
-
-void receive_heartbeat(RaftNode* node, int term, int leader_id) {
-    if (term >= node->current_term) {
-        node->current_term = term;
-        node->leader_id = leader_id;
-        node->state = FOLLOWER;
-        node->last_heartbeat = time(NULL);
     }
 }

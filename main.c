@@ -1,4 +1,5 @@
 #include "raft.h"
+#include "store.h"
 
 void init_node(RaftNode* node, int id, const char* ip, int port) {
     node->node_id = id;
@@ -6,7 +7,6 @@ void init_node(RaftNode* node, int id, const char* ip, int port) {
     node->voted_for = -1;
     node->votes = 0;
     node->state = FOLLOWER;
-    node->leader_id = -1;
     node->last_heartbeat = time(NULL);
     node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 1.0;
 
@@ -56,6 +56,9 @@ int main(int argc, char* argv[]) {
         arg.nodes[i].sin_port = htons(port);
         inet_pton(AF_INET, ip, &arg.nodes[i].sin_addr);
     }
+
+    // table 초기화
+    memset(table, 0, sizeof(Entry*) * TABLE_SIZE);
 
     pthread_t node_thread, socket_thread;
 
