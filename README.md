@@ -1,4 +1,4 @@
-실행
+### 실행
 
 ```
 gcc -o raft main.c raft.c socket.c -lpthread
@@ -14,4 +14,4 @@ gcc -o raft main.c raft.c socket.c -lpthread
 ./raft 2 127.0.0.1:5002 127.0.0.1:5000 127.0.0.1:5001
 ```
 
- 각각의 터미널에 다음 명령어를 각각 실핼시켜 줍니다.
+각각의 터미널에 다음 명령어를 각각 실행시켜 줍니다.
