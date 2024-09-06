@@ -17,7 +17,7 @@ void* run_node(void* arg) {
                 leader_behavior(node, nodes);
                 break;
         }
-        usleep(2000000); // 2초 간격으로 실행
+        usleep(1000000); // 1초 간격으로 실행
     }
     return NULL;
 }
@@ -48,7 +48,7 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     // 투표 요청 전송
     while (node->state == CANDIDATE) {
         request_vote(node, nodes, node->current_term, node->node_id);
-        usleep(2000000); // 1초 간격으로 투표요청 실행
+        usleep(2000000); // 2초 간격으로 투표요청 실행
     }
 }
 
