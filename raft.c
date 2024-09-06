@@ -30,7 +30,7 @@ void follower_behavior(RaftNode* node) {
 
     while (1) {
         /* code */
-        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout && node->leader_ip == NULL) {
+        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
             node->state = CANDIDATE;
             printf("Node %d timed out, becoming candidate\n", node->node_id);
             return;

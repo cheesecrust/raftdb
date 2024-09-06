@@ -69,6 +69,7 @@ void* run_socket(void* arg) {
             node->state = FOLLOWER;
             node->leader_ip = strdup(leader_ip);
             node->leader_port = leader_port;
+            node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 2.0;
         } else if (strncmp(buffer, "get", 3) == 0) {
             char key[MAX_KEY_LENGTH];
             sscanf(buffer, "get %s", key);

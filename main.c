@@ -8,7 +8,7 @@ void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) 
     node->votes = 0;
     node->state = FOLLOWER;
     node->last_heartbeat = time(NULL);
-    node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 1.0;
+    node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 2.0;
     node->num_nodes = num_nodes;
 
     // 소켓 초기화
