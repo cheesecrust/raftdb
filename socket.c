@@ -20,21 +20,36 @@ void* run_socket(void* arg) {
             sscanf(buffer, "REQUEST_VOTE %d %d", &term, &candidate_id);
 
             // TODO: 투표 요청 처리 나 보다 임기가 작은 아이의 요청
+            // if (term < node->current_term || node->leader_ip != NULL) {
+            //     sendto(node->socket_fd, "VOTE_DENIED", 11, 0, (const struct sockaddr*)&addr, len);
+            //     continue;
+            // }
+
+            // if (term > node->current_term) {
+            //     node->current_term = term;
+            //     node->state = FOLLOWER;
+            //     node->leader_ip = NULL;
+            //     node->leader_port = 0;
+            //     node->voted_for = -1;
+            //     node->votes = 0;
+            // }
 
             if (node->voted_for == -1) {
                 node->voted_for = candidate_id;
+
                 sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
             }
         } else if (strncmp(buffer, "VOTE_GRANTED", 12) == 0) {
             node->votes++;
 
-            if (node->votes > NUM_NODES / 2) {
+            if (node->votes > node->num_nodes / 2) {
                 node->state = LEADER;
-                // 자신을 리더로 등록
                 node->leader_ip = inet_ntoa(node->addr.sin_addr);
                 node->leader_port = ntohs(node->addr.sin_port);
+
                 printf("Node %d is now the leader\n", node->node_id);
-                for (int i = 1; i < NUM_NODES; i++) {
+
+                for (int i = 1; i < node->num_nodes; i++) {
                     sendto(node->socket_fd, "LEADER_ELECTED", 14, 0, (const struct sockaddr*)&nodes[i], len);
                 }
             }
@@ -60,14 +75,12 @@ void* run_socket(void* arg) {
 
             get(key);
         } else if (node->state == LEADER && strncmp(buffer, "put", 3) == 0) {
-            printf("Node %d is the leader and received a put request\n", node->node_id);
-
             char key[MAX_KEY_LENGTH];
             char value[MAX_VALUE_LENGTH];
             sscanf(buffer, "put %s %s", key, value);
 
             put(key, value);
-            for (int i = 1; i < NUM_NODES; i++) {
+            for (int i = 1; i < node->num_nodes; i++) {
                 sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], len);
             }
         } else if (strncmp(buffer, "put", 3) == 0) {
@@ -76,6 +89,37 @@ void* run_socket(void* arg) {
             sscanf(buffer, "put %s %s", key, value);
 
             put(key, value);
+        } else if (node->state == LEADER && strncmp(buffer, "member add", 10) == 0) {
+            char ip[MAX_IP_LENGTH];
+            int port;
+            sscanf(buffer, "member add %[^:]:%d", ip, &port);
+
+            struct sockaddr_in new_node;
+            memset(&new_node, 0, sizeof(struct sockaddr_in));
+            new_node.sin_family = AF_INET;
+            new_node.sin_port = htons(port);
+            int n = inet_pton(AF_INET, ip, &new_node.sin_addr);
+
+            printf("is it success? %d\n", n);
+            nodes[node->num_nodes] = new_node;
+            node->num_nodes++;
+
+            for (int i = 1; i < node->num_nodes - 1; i++) {
+                sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], len);
+            }
+        } else if (strncmp(buffer, "member add", 10) == 0) {
+            char ip[MAX_IP_LENGTH];
+            int port;
+            sscanf(buffer, "member add %[^:]:%d", ip, &port);
+
+            struct sockaddr_in new_node;
+            memset(&new_node, 0, sizeof(struct sockaddr_in));
+            new_node.sin_family = AF_INET;
+            new_node.sin_port = htons(port);
+            inet_pton(AF_INET, ip, &new_node.sin_addr);
+
+            nodes[node->num_nodes] = new_node;
+            node->num_nodes++;
         }
     }
 

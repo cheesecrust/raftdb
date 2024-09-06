@@ -59,7 +59,7 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
 
     sprintf(buffer, "REQUEST_VOTE %d %d", term, candidate_id);
 
-    for (int i = 1; i < NUM_NODES; i++) {
+    for (int i = 1; i < node->num_nodes; i++) {
         sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
     }
 
@@ -76,7 +76,7 @@ void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
     char buffer[1024];
     sprintf(buffer, "HEARTBEAT %d IP %s PORT %d", node->current_term, node->leader_ip, node->leader_port);
 
-    for (int i = 1; i < NUM_NODES; i++) {
+    for (int i = 1; i < node->num_nodes; i++) {
         sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], sizeof(nodes[i]));
     }
 }

@@ -10,7 +10,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-#define NUM_NODES 3  // 노드 수를 3으로 설정 (필요에 따라 변경 가능)
+#define MAX_NODE_NUM 10
 #define MAX_IP_LENGTH 16
 
 typedef enum { FOLLOWER, CANDIDATE, LEADER } State;
@@ -28,14 +28,15 @@ typedef struct {
     struct sockaddr_in leader;
     time_t last_heartbeat;
     double election_timeout;
+    int num_nodes;
 } RaftNode;
 
 typedef struct {
     RaftNode* node;
-    struct sockaddr_in nodes[3];
+    struct sockaddr_in nodes[MAX_NODE_NUM];
 } thread_args;
 
-void init_node(RaftNode* node, int id, const char* ip, int port);
+void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes);
 void* run_node(void* arg);
 void* run_socket(void* arg);
 void follower_behavior(RaftNode* node);

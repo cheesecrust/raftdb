@@ -1,7 +1,7 @@
 #include "raft.h"
 #include "store.h"
 
-void init_node(RaftNode* node, int id, const char* ip, int port) {
+void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) {
     node->node_id = id;
     node->current_term = 0;
     node->voted_for = -1;
@@ -9,6 +9,7 @@ void init_node(RaftNode* node, int id, const char* ip, int port) {
     node->state = FOLLOWER;
     node->last_heartbeat = time(NULL);
     node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 1.0;
+    node->num_nodes = num_nodes;
 
     // 소켓 초기화
     node->socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -45,7 +46,7 @@ int main(int argc, char* argv[]) {
 
     thread_args arg;
     arg.node = (RaftNode*)malloc(sizeof(RaftNode));
-    init_node(arg.node, node_id, ip, port);
+    init_node(arg.node, node_id, ip, port, argc - 2);
 
     // 차례대로 노드들의 주소를 저장
     for (int i = 0; i < argc - 2; i++) {
