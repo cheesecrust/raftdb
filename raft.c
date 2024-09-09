@@ -27,28 +27,30 @@ void follower_behavior(RaftNode* node) {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
 
-    while (1) {
+    while (difftime(time(NULL), node->last_heartbeat) < node->election_timeout) {
         /* code */
-        // printf("election_time %f\n", node->election_timeout);
-        if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
-            node->state = CANDIDATE;
-            printf("Node %d timed out, becoming candidate\n", node->node_id);
-            return;
-        }
     }
+
+    node->state = CANDIDATE;
 }
 
 void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     node->current_term++;
     node->voted_for = node->node_id;
     node->votes = 1; // 자신에게 투표
+    double start_time = time(NULL);
 
     printf("Node %d is starting an election for term %d\n", node->node_id, node->current_term);
 
     // 투표 요청 전송
     while (node->state == CANDIDATE) {
+        if (difftime(time(NULL), start_time) > MAX_ELECTION_TIMEOUT) {
+            node->state = FOLLOWER;
+            node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
+            return;
+        }
         request_vote(node, nodes, node->current_term, node->node_id);
-        usleep(2000000); // 2초 간격으로 투표요청 실행
+        sleep(1); // 1초 간격으로 투표요청 실행
     }
 }
 

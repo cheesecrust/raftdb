@@ -4,7 +4,6 @@
 void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) {
     // rand seed 초기화
     srand(time(NULL) + getpid());
-    printf("pid, %d\n", getpid());
 
     node->node_id = id;
     node->current_term = 0;
@@ -12,9 +11,10 @@ void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) 
     node->votes = 0;
     node->state = FOLLOWER;
     node->last_heartbeat = time(NULL);
-    node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 2.0;
+    node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
     node->num_nodes = num_nodes;
 
+    printf("election timeout, %f\n", node->election_timeout);
     // 소켓 초기화
     node->socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (node->socket_fd < 0) {

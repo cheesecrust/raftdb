@@ -21,7 +21,6 @@ void* run_socket(void* arg) {
 
             // TODO: 투표 요청 처리 나 보다 임기가 작은 아이의 요청
 
-            printf("Node %d received a vote request from node %d\n", node->node_id, candidate_id);
             if (node->voted_for == -1) {
                 node->voted_for = candidate_id;
 
@@ -50,6 +49,11 @@ void* run_socket(void* arg) {
             int term, leader_port;
             sscanf(buffer,  "HEARTBEAT %d IP %s PORT %d", &term, leader_ip, &leader_port);
 
+            // 나보다 임기가 작은 아이의 heartbeat는 무시
+            if (term < node->current_term) {
+                continue;
+            }
+
             node->current_term = term;
             node->last_heartbeat = time(NULL);
             node->voted_for = -1;
@@ -57,7 +61,7 @@ void* run_socket(void* arg) {
             node->state = FOLLOWER;
             node->leader_ip = strdup(leader_ip);
             node->leader_port = leader_port;
-            node->election_timeout = ((double)rand() / RAND_MAX) * 2.0 + 2.0;
+            node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
         } else if (strncmp(buffer, "get", 3) == 0) {
             char key[MAX_KEY_LENGTH];
             sscanf(buffer, "get %s", key);
