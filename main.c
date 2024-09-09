@@ -2,6 +2,10 @@
 #include "store.h"
 
 void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) {
+    // rand seed 초기화
+    srand(time(NULL) + getpid());
+    printf("pid, %d\n", getpid());
+
     node->node_id = id;
     node->current_term = 0;
     node->voted_for = -1;

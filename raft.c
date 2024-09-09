@@ -17,7 +17,6 @@ void* run_node(void* arg) {
                 leader_behavior(node, nodes);
                 break;
         }
-        usleep(1000000); // 1초 간격으로 실행
     }
     return NULL;
 }
@@ -30,6 +29,7 @@ void follower_behavior(RaftNode* node) {
 
     while (1) {
         /* code */
+        // printf("election_time %f\n", node->election_timeout);
         if (difftime(time(NULL), node->last_heartbeat) > node->election_timeout) {
             node->state = CANDIDATE;
             printf("Node %d timed out, becoming candidate\n", node->node_id);
@@ -69,7 +69,7 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
 void leader_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     printf("Node %d is sending heartbeats to followers\n", node->node_id);
     send_heartbeat(node, nodes);  // 이 부분을 수정해서 전체 노드에게 보냅니다.
-    sleep(1); // heartbeat 간격
+    sleep(1);
 }
 
 void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
