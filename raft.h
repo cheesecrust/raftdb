@@ -12,7 +12,7 @@
 
 #define MAX_NODE_NUM 10
 #define MAX_IP_LENGTH 16
-#define MAX_ELECTION_TIMEOUT 20.0
+#define MAX_ELECTION_TIMEOUT 10.0
 
 typedef enum { FOLLOWER, CANDIDATE, LEADER } State;
 

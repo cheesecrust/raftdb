@@ -21,7 +21,7 @@ void* run_socket(void* arg) {
 
             // TODO: 투표 요청 처리 나 보다 임기가 작은 아이의 요청
 
-            if (node->voted_for == -1) {
+            if (node->voted_for == -1 && node->state != LEADER) {
                 node->voted_for = candidate_id;
 
                 sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
@@ -66,12 +66,16 @@ void* run_socket(void* arg) {
             char key[MAX_KEY_LENGTH];
             sscanf(buffer, "get %s", key);
 
-            get(key);
+            char* value = get(key);
+            char response[strlen(value) + 2];
+            sprintf(response, "%s\n", value);
+            sendto(node->socket_fd, response, strlen(response), 0, (const struct sockaddr*)&addr, len);
         } else if (strncmp(buffer, "put", 3) == 0) {
             char key[MAX_KEY_LENGTH];
             char value[MAX_VALUE_LENGTH];
             sscanf(buffer, "put %s %s", key, value);
 
+            append_log(buffer);
             put(key, value);
 
             if (node->state == LEADER) {
@@ -98,6 +102,31 @@ void* run_socket(void* arg) {
                     sendto(node->socket_fd, buffer, strlen(buffer), 0, (const struct sockaddr*)&nodes[i], len);
                 }
             }
+        } else if (strncmp(buffer, "read last log", 13) == 0) {
+            FILE* fp = fopen("log.txt", "r");
+            LogEntry entry;
+
+            printf("Log entries:\n");
+            fseek(fp, -sizeof(LogEntry), SEEK_END);
+
+            fread(&entry, sizeof(LogEntry), 1, fp);
+            printf("%d %s\n", entry.index, entry.command);
+
+
+            fclose(fp);
+        } else if (strncmp(buffer, "read logs", 9) == 0) {
+            FILE* fp = fopen("log.txt", "r");
+            LogEntry entry;
+
+            printf("Log entries:\n");
+            fseek(fp, 0, SEEK_SET);
+
+            while (fread(&entry, sizeof(LogEntry), 1, fp)) {
+                printf("%d %s\n", entry.index, entry.command);
+            }
+            printf("end of log entries\n");
+
+            fclose(fp);
         }
     }
 

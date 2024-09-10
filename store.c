@@ -17,12 +17,37 @@ void put(char *key, char *value) {
     table[index] = new_entry;
 }
 
-void get(char *key) {
+char* get(char *key) {
     unsigned int index = hash(key);
     Entry *entry = table[index];
 
     if (entry) {
-        printf("%s\n", entry->value);
+        // printf("%s\n", entry->value);
     }
+
+    return entry->value;
 }
 
+void append_log(char *command) {
+    FILE *fp = fopen("log.txt", "a");
+    LogEntry new_entry;
+
+    int n = fseek(fp, -sizeof(LogEntry), SEEK_END);
+    new_entry.index = 0;
+
+    printf("fseek: %d\n", n);
+    if (n != -1) {
+        fread(&new_entry, sizeof(LogEntry), 1, fp);
+
+        new_entry.index += 1;
+    }
+
+    new_entry.command = strdup(command);
+
+    printf("Appending log entry: %d %s\n", new_entry.index, new_entry.command);
+    fwrite(&new_entry, sizeof(LogEntry), 1, fp);
+
+    // 디스크에 쓰기 저장 시점 고민
+    fflush(fp);
+    fclose(fp);
+}
