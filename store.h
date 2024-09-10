@@ -14,10 +14,16 @@ typedef struct Entry {
     char *value;
 } Entry;
 
+typedef struct {
+    int index;
+    char *command;
+} LogEntry;
+
 Entry *table[TABLE_SIZE];
 
 // 해시 함수
 unsigned int hash(char *key);
 void process_command(char *command);
 void put(char *key, char *value);
-void get(char *key);
+char* get(char *key);
+void append_log(char *command);

@@ -27,11 +27,11 @@ void follower_behavior(RaftNode* node) {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
 
-    while (difftime(time(NULL), node->last_heartbeat) < node->election_timeout) {
+    while (difftime(time(NULL), node->last_heartbeat) <= node->election_timeout) {
         /* code */
     }
-
     node->state = CANDIDATE;
+    printf("Node %d is now candidate\n", node->node_id);
 }
 
 void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
@@ -40,11 +40,10 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
     node->votes = 1; // 자신에게 투표
     double start_time = time(NULL);
 
-    printf("Node %d is starting an election for term %d\n", node->node_id, node->current_term);
-
     // 투표 요청 전송
     while (node->state == CANDIDATE) {
         if (difftime(time(NULL), start_time) > MAX_ELECTION_TIMEOUT) {
+            node->voted_for = -1;
             node->state = FOLLOWER;
             node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
             return;
@@ -69,9 +68,8 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
 }
 
 void leader_behavior(RaftNode* node, struct sockaddr_in* nodes) {
-    printf("Node %d is sending heartbeats to followers\n", node->node_id);
     send_heartbeat(node, nodes);  // 이 부분을 수정해서 전체 노드에게 보냅니다.
-    sleep(1);
+    usleep(100);
 }
 
 void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
