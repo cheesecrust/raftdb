@@ -13,17 +13,15 @@ void* run_socket(void* arg) {
         socklen_t len = sizeof(addr);
 
         recvfrom(node->socket_fd, (char*)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&addr, &len);
-        printf("Node %d received: %s\n", node->node_id, buffer);
+        printf("Received: %s\n", buffer);
 
         if (strncmp(buffer, "REQUEST_VOTE", 12) == 0) {
             int term, candidate_id;
             sscanf(buffer, "REQUEST_VOTE %d %d", &term, &candidate_id);
 
             // TODO: 투표 요청 처리 나 보다 임기가 작은 아이의 요청
-
             if (node->voted_for == -1 && node->state != LEADER) {
                 node->voted_for = candidate_id;
-
                 sendto(node->socket_fd, "VOTE_GRANTED", 12, 0, (const struct sockaddr*)&addr, len);
             }
         } else if (strncmp(buffer, "VOTE_GRANTED", 12) == 0) {
@@ -42,7 +40,7 @@ void* run_socket(void* arg) {
             }
         } else if (strncmp(buffer, "LEADER_ELECTED", 14) == 0) {
             node->state = FOLLOWER;
-
+            node->voted_for = -1;
             printf("Node %d is now a follower\n", node->node_id);
         } else if (strncmp(buffer, "HEARTBEAT", 9) == 0) {
             char leader_ip[MAX_IP_LENGTH];
