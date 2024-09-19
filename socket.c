@@ -53,13 +53,13 @@ void* run_socket(void* arg) {
             }
 
             node->current_term = term;
-            node->last_heartbeat = time(NULL);
             node->voted_for = -1;
             node->votes = 0;
             node->state = FOLLOWER;
             node->leader_ip = strdup(leader_ip);
             node->leader_port = leader_port;
-            node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
+            node->election_timeout = (double)(rand() % 150) + 150.0;
+            clock_gettime(CLOCK_REALTIME, &node->last_heartbeat);
         } else if (strncmp(buffer, "get", 3) == 0) {
             char key[MAX_KEY_LENGTH];
             sscanf(buffer, "get %s", key);
