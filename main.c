@@ -10,7 +10,7 @@ void init_node(RaftNode* node, int id, const char* ip, int port, int num_nodes) 
     node->voted_for = -1;
     node->votes = 0;
     node->state = FOLLOWER;
-    node->election_timeout = (double)(rand() % 150) + 150.0;
+    node->election_timeout = (double)(rand() % 150) + 151.0;
     node->num_nodes = num_nodes;
     clock_gettime(CLOCK_REALTIME, &node->last_heartbeat);
 

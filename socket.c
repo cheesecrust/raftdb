@@ -49,6 +49,7 @@ void* run_socket(void* arg) {
 
             // 나보다 임기가 작은 아이의 heartbeat는 무시
             if (term < node->current_term) {
+                printf("Ignoring heartbeat from port %d\n", leader_port);
                 continue;
             }
 
@@ -58,7 +59,7 @@ void* run_socket(void* arg) {
             node->state = FOLLOWER;
             node->leader_ip = strdup(leader_ip);
             node->leader_port = leader_port;
-            node->election_timeout = (double)(rand() % 150) + 150.0;
+            node->election_timeout = (double)(rand() % 150) + 151.0;
             clock_gettime(CLOCK_REALTIME, &node->last_heartbeat);
         } else if (strncmp(buffer, "get", 3) == 0) {
             char key[MAX_KEY_LENGTH];

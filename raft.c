@@ -33,6 +33,11 @@ void follower_behavior(RaftNode* node) {
         clock_gettime(CLOCK_REALTIME, &timeout);
         long sec = timeout.tv_sec - node->last_heartbeat.tv_sec;
         long nsec = timeout.tv_nsec - node->last_heartbeat.tv_nsec;
+        // 나노초 차이가 음수인 경우 보정
+        if (nsec < 0) {
+            sec--;
+            nsec += 1000000000;
+        }
         diff = sec * 1000.0 + nsec / 1000000.0;
     } while (diff <= node->election_timeout);
 
@@ -53,7 +58,7 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
         if (difftime(time(NULL), start_time) > MAX_ELECTION_TIMEOUT) {
             node->voted_for = -1;
             node->state = FOLLOWER;
-            node->election_timeout = (double)(rand() % 150) + 150.0;
+            node->election_timeout = (double)(rand() % 150) + 151.0;
             return;
         }
     }
@@ -74,8 +79,7 @@ int request_vote(RaftNode* node, struct sockaddr_in* nodes, int term, int candid
 }
 
 void leader_behavior(RaftNode* node, struct sockaddr_in* nodes) {
-    send_heartbeat(node, nodes);  // 이 부분을 수정해서 전체 노드에게 보냅니다.
-    usleep(100);
+    send_heartbeat(node, nodes);  // 전체 노드에게 보냅니다.
 }
 
 void send_heartbeat(RaftNode* node, struct sockaddr_in* nodes) {
