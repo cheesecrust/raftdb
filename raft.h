@@ -27,7 +27,7 @@ typedef struct {
     int socket_fd;
     struct sockaddr_in addr;
     struct sockaddr_in leader;
-    time_t last_heartbeat;
+    struct timespec last_heartbeat;
     double election_timeout;
     int num_nodes;
 } RaftNode;

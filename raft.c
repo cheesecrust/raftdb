@@ -24,12 +24,18 @@ void* run_node(void* arg) {
 void follower_behavior(RaftNode* node) {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
+    struct timespec timeout;
     char buffer[1024];
+    double diff;
     memset(buffer, 0, sizeof(buffer));
 
-    while (difftime(time(NULL), node->last_heartbeat) <= node->election_timeout) {
-        /* code */
-    }
+    do {
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        long sec = timeout.tv_sec - node->last_heartbeat.tv_sec;
+        long nsec = timeout.tv_nsec - node->last_heartbeat.tv_nsec;
+        diff = sec * 1000.0 + nsec / 1000000.0;
+    } while (diff <= node->election_timeout);
+
     node->state = CANDIDATE;
     printf("Node %d is now candidate\n", node->node_id);
 }
@@ -42,14 +48,14 @@ void candidate_behavior(RaftNode* node, struct sockaddr_in* nodes) {
 
     // 투표 요청 전송
     while (node->state == CANDIDATE) {
+        request_vote(node, nodes, node->current_term, node->node_id);
+
         if (difftime(time(NULL), start_time) > MAX_ELECTION_TIMEOUT) {
             node->voted_for = -1;
             node->state = FOLLOWER;
-            node->election_timeout = (double)(rand() % 10) / 10 + 2.0;
+            node->election_timeout = (double)(rand() % 150) + 150.0;
             return;
         }
-        request_vote(node, nodes, node->current_term, node->node_id);
-        sleep(1); // 1초 간격으로 투표요청 실행
     }
 }
 
