@@ -19,7 +19,7 @@ gcc -o raft main.c raft.c socket.c -lpthread
 노드 추가 방법
 
 ```
-nc -u 127.0.0.1 5003
+nc -u 127.0.0.1 5000
 
 member add 127.0.0.1 5003
 ```
